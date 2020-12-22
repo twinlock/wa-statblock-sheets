@@ -1,0 +1,62 @@
+<section class="blue-rose-character-trackable">
+    <div class="row">
+        <div class="col-12 col-md-12 col-lg-4 d-flex flex-column">
+            <div class="card my-2 flex-shrink-1"> <!-- misc -->
+                <div class="card-header header text-center"><em class="ra ra-sprout-emblem"></em>Attributes</div>
+                <div class="card-body txt pd">
+                    <table class="card-table" >
+                        <tr><td class="txt c"><em class="ra ra-glass-heart"></em></td><td class="txt"><strong title="Health">Health</strong></td><td class="num"><input value="{{ variables.health is defined ? variables.health }}" class="form-control" id="health" name="health" type="number" /><strong>/{{ variables.health_maximum is defined ? variables.health_maximum }}</strong</td></tr>
+                        <tr><td class="txt c"><em class="ra ra-crowned-heart"></em></td><td class="txt"><strong title="Conviction">Conviction</span></td><td class="num">
+                        <input value="{{ variables.conviction is defined ? variables.conviction }}" class="form-control" id="conviction" name="conviction" type="number" /></td></tr>
+                        <tr><td class="txt c" colspan="3">Conviction: expend to lower corruption or gain a benefit.</td></tr>
+                        <tr><td class="txt c"><em class="ra ra-desert-skull"></em></td><td class="txt"><strong title="Corruption">Corruption</span></td><td class="num">
+                        <input value="{{ variables.corruption is defined ? variables.corruption }}" class="form-control" id="corruption" name="corruption" type="number" /></td></tr>
+                        <tr><td class="txt c" colspan="3">Corruption: lowers will and constitution, unless you give in to shadow.</d></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="card my-2 flex-grow-1"> <!-- conditions -->
+                <div class="card-header header text-center"><em class="ra ra-broken-bone"></em>Conditions</div>
+                <div class="card-body txt pd">
+                <strong>Fatigue Level:</strong><input value="{{ variables.condition_fatigued is defined ? variables.condition_fatigued }}" class="form-control" id="condition_fatigued" name="condition_fatigued" type="number" />
+                </div>
+                <div class="card-body txt pd">
+                <strong>Other Conditions:</strong>
+                <input values="0" type="hidden" name="condition_blinded" />
+                <input value="1" {% if variables.condition_blinded is defined and variables.condition_blinded == 1 %} checked="checked"{% endif %} id="condition_blinded" name="condition_blinded" type="checkbox" /> Blinded
+                <input values="0" type="hidden" name="condition_deafened" />
+                <input value="1" {% if variables.condition_deafened is defined and variables.condition_deafened == 1 %} checked="checked"{% endif %} id="condition_deafened" name="condition_deafened" type="checkbox" /> Deafened
+                <input values="0" type="hidden" name="condition_hindered" />
+                <input value="1" {% if variables.condition_hindered is defined and variables.condition_hindered == 1 %} checked="checked"{% endif %} id="condition_hindered" name="condition_hindered" type="checkbox" /> Hindered
+                <input values="0" type="hidden" name="condition_prone" />
+                <input value="1" {% if variables.condition_prone is defined and variables.condition_prone == 1 %} checked="checked"{% endif %} id="condition_prone" name="condition_prone" type="checkbox" /> Prone
+                <input values="0" type="hidden" name="condition_restrained" />
+                <input value="1" {% if variables.condition_restrained is defined and variables.condition_restrained == 1 %} checked="checked"{% endif %} id="condition_restrained" name="condition_restrained" type="checkbox" /> Restrained
+<br><br>
+                <input values="0" type="hidden" name="condition_helpless" />
+                <input value="1" {% if variables.condition_helpless is defined and variables.condition_helpless == 1 %} checked="checked"{% endif %} id="condition_helpless" name="condition_helpless" type="checkbox" /> Helpless
+                <input values="0" type="hidden" name="condition_unconscious" />
+                <input value="1" {% if variables.condition_unconscious is defined and variables.condition_unconscious == 1 %} checked="checked"{% endif %} id="condition_unconscious" name="condition_unconscious" type="checkbox" /> Unconscious
+<br><br>
+                <input values="0" type="hidden" name="condition_dying" />
+                <input value="1" {% if variables.condition_dying is defined and variables.condition_dying == 1 %} checked="checked"{% endif %} id="condition_dying" name="condition_dying" type="checkbox" /> Dying
+                <br><br>Hint: if you save changed conditions and then reload the full sheet, the penalties will automatically get added/subtracted accordingly.
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-12 col-lg-8 d-flex flex-column">
+            <div class="card my-2 flex-fill"> <!-- equipment -->
+                <div class="card-header header text-center"><em class="ra ra-kettlebell"></em> Equipment</div>
+                <div class="card-body show txt comment">
+                    <textarea class="form-control" style="height: 100%!important" id="equipment" name="equipment" placeholder="">{{ variables.equipment is defined ? variables.equipment }}</textarea>
+                </div>
+            </div>
+                <div class="card my-2 flex-fill"> <!-- notes -->
+                <div class="card-header header text-center"><em class="fas fa-file-alt"></em> Notes</div>
+                <div class="card-body show txt comment">
+                    <textarea class="form-control" style="height: 100%!important" id="notes" name="notes" placeholder="">{{ variables.notes is defined ? variables.notes }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

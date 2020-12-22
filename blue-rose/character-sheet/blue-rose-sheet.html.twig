@@ -1,0 +1,484 @@
+{% import _self as sheet %}
+{# genDie(): converts "2d12+6" into "2 <d12icon> + 6" ---------------------------------------------------- #}
+{% macro genDie(roll, icon) %}{% if roll is defined and roll != '' %}
+    {% if roll == 'x' %}
+        {% if icon is defined and icon == 'icon' %}{{dd}} <em class="far fa-times-square"></em>{% else %}N/A{% endif %}
+    {% else %}
+        {% set roll = roll|replace({ '+-' : '-' }) %}{# 3d6+-2-1 -> 3d6-2-1 #}
+        {% set roll = roll|replace({ ' ' : '' }) %}
+        {% set tmp = roll|split('d6') %} {# 3 | -2-1 #}
+        {% set die = tmp[0] %} {# 3 #}
+        {% set inc = tmp[1] %} {# -2-1 #}
+        {% if inc == '+0' %}{% set inc = '' %}{% endif %}
+        {% if inc == '-0' %}{% set inc = '' %}{% endif %}
+        {% if die is defined and die > 0 %}
+            {% if icon is defined and icon == 'icon' %}
+                {# % if die < 2 %}{% set die='' %}{% endif % #}
+                {{die}} <em class="far fa-dice-d6"></em> {% if inc != '' %}{{inc}}{% endif %}
+            {% else %}
+                {{die}}d6{% if inc != '' %}{{inc}}{% endif %}
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endif %}{% endmacro genDie %}
+{# genRoller(): creates stuff like 2d(dieiconhere)+5 ---------------------------------------------------- #}
+{% macro genRoller(roll, penalty, pill, ic, alt) %}{% if penalty == 'x' %}
+    {% if pill is defined and pill == 'pill' %}
+        <span class="badge-pill" title="Not available due to conditions"><em class="far fa-times-square"></em></span>
+    {% else %}
+        N/A
+    {% endif %}
+{% else %}
+    {% set die %}{{ sheet.genDie(roll ~ penalty, '') }}{% endset %}
+    {% set icon %}{{ sheet.genDie(roll ~ penalty, 'icon') }}{% endset %}
+    {% set die = die|replace({ ' ' : '' }) %}
+    {% set die = die|replace({ '+-' : '-' }) %}
+    {% if ic is defined and ic != '' %}
+        {% if pill is defined and pill == 'pill' %}
+            <span class="badge-pill" title="Die: {{die|trim}}">[roll:{{die|trim}}|<em class="{{ic}}"></em>]</span>
+        {% else %}
+            [roll:{{die}}|<em class="{{ic}}"></em>]
+        {% endif %}
+    {% else %}
+        {% if alt is defined and alt != '' %}{% set icon = alt %}{% endif %}
+        {% if pill is defined and pill == 'pill' %}
+            <span class="badge-pill" title="Die: {{die|trim}}">[roll:{{die|trim}}|{{icon}}]</span>
+        {% else %}
+            [roll:{{die}}|{{icon}}]
+        {% endif %}
+    {% endif %}
+{% endif %}{% endmacro genRoller %}
+{# genDmg(): create stuff from 1d4+1, 2d6+2 ---------------------------------------------------- #}
+{% macro genWeapon(id,name,ability,damage,qual,penalty,dex,per,str) %}{% if name is defined and name != '' %}<tr>
+        <td title="Weapon name {{id}}" width="50%" class="txt l"><span class="strong">{{name}}</span></td>
+        {% set a = '' %}
+        {% set b = '' %}
+        {% if ability != 'NONE' %}
+            {% if ability == 'DEX' and dex != 0 %}{% set b = '+' ~ dex %}{% endif %}
+            {% if ability == 'PER' and per != 0 %}{% set b = '+' ~ per %}{% endif %}
+            {% if ability == 'STR' and str != 0 %}{% set b = '+' ~ str %}{% endif %}
+            {% set a = '+' ~ ability %}
+        {% endif %}
+        {% set a = a|replace({ ' ' : '' }) %}
+        {% set a = a|replace({ '+-' : '-' }) %}
+        {% set b = b|replace({ ' ' : '' }) %}
+        {% set b = b|replace({ '+-' : '-' }) %}
+        <td title="Weapon damage">
+            <span class="strong">{{damage ~ a}}</span>
+        </td>
+        <td>
+            <span class="badge-pill" title="Die: {{damage ~ a}}">[roll:{{damage ~ b}}|<em class='fas fa-dice'></em>]</span>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="3" title="Weapon qualities {{id}}" class="txt l">{{qual}}</td>
+</tr>{% endif %}{% endmacro genWeapon %}
+{# genArcana() ---------------------------------------------------- #}
+{% macro genArcana(id,name,time,test,resist,fatigue,description) %}{% if name is defined and name != '' %}
+    <tr>
+        <th width="50%" colspan="2" title="Arcana name {{id}}" width="100%" class="strong">{{name}}</th>
+        <td  rowspan="3" title="Arcana Description {{id}}" class="txt l">{{description}}</td>
+    </tr>
+    <tr>
+        <td title="Arcana time {{id}}" width="25%" class="txt l"><span class="strong">Cast Time:</span>{{time}}</td>
+        <td title="Arcana Test {{id}}"  class="txt l"><span class="strong">Test:</span>{{test}}</td>
+    </tr>
+    <tr>
+        <td title="Arcana Resist {{id}}" class="txt l"><span class="strong">Resist:</span>{{resist}}</td>
+        <td title="Arcana Fatigue{{id}}" class="txt l"><span class="strong">Fatigue:</span>{{fatigue}}</td>
+    </tr>
+    {% endif %}
+{% endmacro genArcana %}
+{# genPower() ---------------------------------------------------- #}
+{% macro genPower(id,name,effect) %}{% if name is defined and name != '' %}
+    <tr>
+        <th title="Power name {{id}}" class="txt c strong">{{name}}</th>
+    </tr>
+    <tr>
+        <td title="Power effect {{id}}" class="txt l">{{effect}}</td>
+    </tr>
+    {% endif %}
+{% endmacro genPower %}
+{# genTalent() ---------------------------------------------------- #}
+{% macro genTalent(id,name,degree,effect) %}{% if name is defined and name != '' %}
+    <tr>
+        <td title="Talent name {{id}}" width="80%" class="txt l"><span class="strong">{{name}}</span></td>
+        <td title="Talent degree">{{degree}}</td>
+    </tr>
+    <tr>
+        <td colspan="2" title="Talent effect {{id}}" class="txt l">{{effect}}</td>
+    </tr>
+    {% endif %}
+{% endmacro genTalent %}
+{# genAbility() ---------------------------------------------------- #}
+{% macro genAbility(ability, value, focus, penalty, desc) %}<tr>
+    <td class="abilityname" title="{{desc}}">{{ability}}</td>
+    <td class="abilityvalue">{{ sheet.genRoller('3d6+' ~ value, penalty, 'pill', '', value) }}</td>
+</tr>
+<tr>{% if focus is defined and focus != '' %}<td class="abilityfocus">{{focus|nl2br}}</td><td class="abilityvalue">{# {{ sheet.genRoller('3d6+' ~ (value+2), penalty, 'pill', '', '+2') }} #} &nbsp; </td>{% else %}<td colspan=2 class="abilityfocus">&nbsp;</td>{% endif %}
+</tr>{% endmacro genAbility %}
+{# ---------------------------------------------------- #}
+<div class="container-fluid blue-rose-sheet">
+    {% set speed = variables.dexterity + 10 %}{% set move = speed %}{% set run = speed * 2 %}{% set charge = speed // 2 %}{% set penalty = '' %}
+        {% if variables.condition_blinded is defined and variables.condition_blinded %}
+        {% endif %}
+        {% if variables.condition_deafened is defined and variables.condition_deafened %}
+        {% endif %}
+        {% if variables.condition_prone is defined and variables.condition_prone %}
+        {% endif %}
+        {% if variables.condition_fatigued is defined and variables.condition_fatigued == 1 %}
+            {% set penalty = -1 %}
+            {% set run = 0 %}
+            {% set charge = 0 %}
+        {% endif %}
+        {% if variables.condition_fatigued is defined and variables.condition_fatigued == 2 %}
+            {% set penalty = -2 %}
+            {% set speed = speed // 2 %}
+            {% set run = 0 %}
+            {% set charge = 0 %}
+        {% endif %}
+        {% if variables.condition_fatigued is defined and variables.condition_fatigued == 3 %}
+            {% set penalty = -3 %}
+            {% set speed = speed // 2 %}
+            {% set run = 0 %}
+            {% set charge = 0 %}
+            {% if variables.health is defined and variables.health_maximum is defined and variables.health < variables.health_maximum // 2 %}
+              {% set speed = 0 %}
+              {% set penalty = 'x' %}
+            {% endif %}
+        {% endif %}
+        {% if variables.condition_restrained is defined and variables.condition_restrained %}
+            {% set speed = 0 %}
+            {% set move = 0 %}
+            {% set run = 0 %}
+        {% endif %}
+        {% if variables.condition_hindered is defined and variables.condition_hindered %}
+            {% set speed = speed // 2 %}
+            {% set move = speed %}
+            {% set run = 0 %}
+        {% endif %}
+        {% if variables.condition_helpless is defined and variables.condition_helpless %}
+            {% set speed = 0 %}
+            {% set move = 0 %}
+            {% set run = 0 %}
+            {% set penalty = 'x' %}
+        {% endif %}
+        {% if variables.condition_unconscious is defined and variables.condition_unconscious %}
+            {% set speed = 0 %}
+            {% set move = 0 %}
+            {% set run = 0 %}
+            {% set penalty = 'x' %}
+        {% endif %}
+        {% if variables.condition_dying is defined and variables.condition_dying %}
+            {% set speed = 0 %}
+            {% set move = 0 %}
+            {% set run = 0 %}
+            {% set penalty = 'x' %}
+        {% endif %}
+    <div class="row">
+        <div class="col-12 col-md-12 col-lg-4 d-flex flex-column">
+            <div class="row logo flex-shrink-1" title="The Blue Rose Logo">{# logo #}</div>
+            <div class="card my-2 flex-grow-1"> {# personal #}
+                <div class="card-header header text-center"><em class="ra ra-player"></em> Personal <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapsePerso" aria-expanded="true" aria-controls="collapsPerso"><em class="fas fa-angle-down"></em></button></div>
+                <div class="card-body collapse show txt" id="collapsePerso" aria-labelledby="headingperso">
+                    <table width="100%" height="100%">
+                    <tr><td colspan=2>{% if variables.name is defined %}<h2>{{ variables.name }}</h2> {% endif %}</td></tr>
+                    <tr><td width=20px><span class="strong">Gender:</span></td><td class="txt l">{% if variables.gender is defined %} {{ variables.gender }} {% endif %}</td></tr>
+                    <tr><td ><span class="strong">Age:</span></td><td class="txt l">{% if variables.age is defined %} {{ variables.age }} {% endif %}</td></tr>
+                    <tr><td ><span class="strong">Race:</span></td><td class="txt l">{% if variables.race is defined %} {{ variables.race }} {% endif %}</td></tr>
+                    <tr><td ><span class="strong">Background:</span></td><td class="txt l">{% if variables.background is defined %} {{ variables.background }} {% endif %}</td></tr>
+                    <tr><td ><span class="strong">Class:</span></td><td class="txt l">{% if variables.class is defined %} {{ variables.class }} {% endif %}</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-12 col-lg-4">
+            <div class="card my-2"> {# attributes right column #}
+                <div class="card-header header text-center"><em class="ra ra-sprout-emblem"></em> Attributes <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseMisc" aria-expanded="true" aria-controls="collapsMisc"><em class="fas fa-angle-down"></em></button></div>
+                <div class="card-body collapse show txt" id="collapseMisc" aria-labelledby="headingMisc">
+                    <table width="100%">
+                        {% if variables.armor is defined %}{% set armor = variables.armor %}{% else %}{% set armor = 0 %}{% endif %}
+                        <tr><td class="txt c" width=20px><em class="ra ra-all-for-one"></em></td><td class="txt"><strong title="Level">Level</span></td><td class="num">{{ variables.level }}</td></tr>
+                        <tr><td class="txt c"><em class="fas fa-heart"></em></td><td class="txt"><strong title="Health">Health</span></td>
+                        {% if variables.health_maximum is defined and variables.health is defined %}
+                        <td class="num">{{ variables.health }}/{{ variables.health_maximum }}</td>
+                        {% elseif variables.health_maximum is defined %}
+                        <td class="num">{{ variables.health_maximum }}</td>
+                        {% else %}
+                        <td class="num">{{ variables.health }}</td>
+                        {% endif %}
+                        </tr>
+                        <tr><td class="txt c"><em class="ra ra-shoe-prints"></em></td><td class="txt"><strong title="Speed: 10 + DEX">Speed (Move)</span> (10+DEX)</td><td class="num">{{speed}}</td></tr>
+                        <tr><td class="txt c"><em class="fas fa-running"></em></td><td class="txt"><strong title="Running = Speed × 2">Run</span> (Speed×2)</td><td class="num">{{run}}</td></tr>
+                        <tr><td class="txt c"><em class="ra ra-boot-stomp"></em></td><td class="txt"><strong title="Charge = Speed ÷ 2">Charge</span> (Speed÷2)</td><td class="num">{{charge}}</td></tr>
+                        {% set pc = 'num' %}{% if penalty != 0 %}{% set pc = 'warn' %}{% endif %}
+                        <tr><td class="txt c"><em class="ra ra-player-pain"></em></td><td class="txt"><strong title="Penalty to rolls due to conditions">Penalty</span> (to all tests)</td><td class="{{pc}}">{{penalty}}</td></tr>
+                        <tr><td class="txt c"><em class="ra ra-crowned-heart"></em></td><td class="txt"><strong title="Conviction">Conviction</span></td><td class="num">{{ variables.conviction }}</td></tr>
+                        <tr><td class="txt c" colspan="3">Conviction: expend to lower corruption or gain a benefit.</td></tr>
+                        <tr><td class="txt c"><em class="ra ra-desert-skull"></em></td><td class="txt"><strong title="Corruption">Corruption</span></td><td class="num">{{ variables.corruption }}</td></tr>
+                        <tr><td class="txt c" colspan="3">Corruption: lowers will and constitution, unless you give in to shadow.</d></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-12 col-lg-4 d-flex flex-column">
+            <div class="card my-2 flex-grow-1"> {# defense #}
+                <div class="card-header header text-center"><em class="ra ra-heavy-shield"></em>Defense <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseDefense" aria-expanded="true" aria-controls="collapsDefense"><em class="fas fa-angle-down"></em></button></div>
+                <div class="card-body collapse show txt" id="collapseDefense" aria-labelledby="headingDefense">
+                    <table width="100%" height="100%">
+                        {% if variables.armor is defined %}{% set armor = variables.armor %}{% else %}{% set armor = 0 %}{% endif %}
+                        <tr><td class="txt c"><em class="fas fa-shield"></em></td><td class="txt"><strong title="Defense">Defense</span></td><td class="num">{{ variables.defense }}</td></tr>
+                        <tr><td class="txt c"><em class="far fa-helmet-battle"></em></td><td class="txt"><strong title="Armor">Armor Bonus</span></td><td class="num">{{ variables.armor_bonus }}</td></tr>
+                        <tr><td class="txt c"><em class="far fa-helmet-battle"></em></td><td class="txt" colspan="2"><strong title="Armor">Armor Type:</span> {{ variables.armor_type }}</td></tr>
+                        {% set pc = 'num' %}{% if variables.armor_penalty != 0 %}{% set pc = 'warn' %}{% endif %}
+                        <tr><td class="txt c"><em class="far fa-helmet-battle"></em></td><td class="txt"><strong title="Armor">Armor Penalty</span><br>(to DEX based tests and Speed)</td><td class="{{pc}}">{{ variables.armor_penalty }}</td></tr>
+                        <tr><td class="txt c" colspan="3">Defense: reduce damage by Armour.</td></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="card my-2 flex-shrink-1"> {# conditions #}
+                <div class="card-header header text-center"><em class="ra ra-broken-bone"></em>Conditions <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseConditions" aria-expanded="true" aria-controls="collapsConditions"><em class="fas fa-angle-down"></em></button></div>
+                <div class="card-body collapse show txt pd" id="collapseConditions" aria-labelledby="headingConditions">
+                    <div> <strong>Fatigue Level:</strong>{% if variables.condition_fatigued is not defined or variables.condition_fatigued == 0 %} <span class="txt">0</span> {% endif %}
+                    {% if variables.condition_fatigued is defined and variables.condition_fatigued == 1 %}<span class="alert alert-warning"    title="Level 1, Winded: -1 to all tests, no Charge or Run actions.">1:Winded</span><br/><span class="txt"> -1 to all tests, no Run or Charge Actions</span>{% endif %}
+                    {% if variables.condition_fatigued is defined and variables.condition_fatigued == 2 %}<span class="alert alert-warning"    title="Level 2, Fatigued: -2 to all tests,  half speed, no Charge or Run actions.">2:Fatigued</span><br/><span class="txt">-2 to all tests,  half speed, no Charge or Run actions.</span>{% endif %}
+                    {% if variables.condition_fatigued is defined and variables.condition_fatigued == 3 %}<span class="alert alert-warning"    title="Level 3, Exhausted: -3 to all tests,  half speed, no Charge or Run actions. Unconscious for 1d6 hours if character is below half health, until restored. Recover 10+CON+Level HP after regaining conciousness.">3:Exhasuted</span>
+                        <br/><span class="txt">-3 to all tests,  half speed, no Charge or Run actions. Unconscious for 1d6 hours if character is below half health, until restored. Recover 10+CON+Level HP after regaining conciousness.</span>
+                    {% endif %}
+                    {% if variables.condition_fatigued is defined and variables.condition_fatigued == 4 %}<span class="alert alert-warning"    title="Level 4, Dying: Health drops to 0, you begin to die. If restored to 1 HP or more you are unconscious for 1d6 hours at lvl 3 fatigue">4:Dying</span><br/><span class="txt">Unable to do anything, regaining health restores to unconscious for 1d6 hours.</span>{% endif %}
+                    </div>
+                    <div><strong>Other Conditions:</strong>
+                    {% if variables.condition_blinded is defined and variables.condition_blinded %}<span class="alert alert-info"           title="">Blinded</span>{% endif %}
+                    {% if variables.condition_deafened is defined and variables.condition_deafened %}<span class="alert alert-info"         title="Can't do Perception (Hearing) checks.">Deafened</span>{% endif %}
+                    {% if variables.condition_hindered is defined and variables.condition_hindered %}<span class="alert alert-info"         title="Half speed, no Charge or Run actions.">Hindered</span>{% endif %}
+                    {% if variables.condition_prone is defined and variables.condition_prone %}<span class="alert alert-info"               title="No Charge or Run actions.">Prone</span>{% endif %}
+                    {% if variables.condition_restrained is defined and variables.condition_restrained %}<span class="alert alert-info"     title="Speed is 0, possibly no actions.">Restrained</span>{% endif %}
+                    {% if variables.condition_helpless is defined and variables.condition_helpless %}<span class="alert alert-warning"      title="Can't take any actions.">Helpless</span>{% endif %}
+                    {% if variables.condition_unconscious is defined and variables.condition_unconscious %}<span class="alert alert-danger" title="Also prone, can't take any actions.">Unconscious</span>{% endif %}
+                    {% if variables.condition_fatigued is defined and variables.condition_fatigued == 3 and variables.health is defined and variables.health_maximum is defined and variables.health < variables.health_maximum // 2 %}<span class="alert alert-danger" title="Also prone, can't take any actions.">Unconscious</span> {% endif %}
+                    {% if variables.condition_dying is defined and variables.condition_dying %}<span class="alert alert-danger"             title="Unable to do anything.">Dying</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 col-md-12 col-lg-4">
+            <div class="card my-2 of"> {# abilities #}
+                <div class="card-header header text-center"><em class="ra ra-player-lift"></em> Abilities <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseAbilities" aria-expanded="true" aria-controls="collapsAbilities"><em class="fas fa-angle-down"></em></button></div>
+                <div class="card-body collapse show txt" id="collapseAbilities" aria-labelledby="headingAbilities">
+                    <table class="abilites of">
+                        {{ sheet.genAbility('Accuracy', variables.accuracy, variables.accuracy_focus, penalty, 'Accuracy measures aim and precision, and measures your ability to hit targets with ranged or thrown weapons.') }}
+                        {{ sheet.genAbility('Communication', variables.communication, variables.communication_focus, penalty, 'Communication covers social skills and generally making friends and influencing people.') }}
+                        {{ sheet.genAbility('Constitution', variables.constitution, variables.constitution_focus, penalty, 'Constitution is your character’s overall health, fortitude, and resistance to harm, illness, and fatigue.') }}
+                        {{ sheet.genAbility('Dexterity', variables.dexterity, variables.dexterity_focus, penalty, 'Dexterity covers deftness, agility, and reaction time, affecting how quickly and gracefully you move.') }}
+                        {{ sheet.genAbility('Fighting', variables.fighting, variables.fighting_focus, penalty, 'Fighting is your character’s capability and prowess in close combat, ranging from a brawl to wielding weapons.') }}
+                        {{ sheet.genAbility('Intelligence', variables.intelligence, variables.intelligence_focus, penalty, 'Intelligence measures a character’s reasoning, memory, problemsolving, and overall knowledge.') }}
+                        {{ sheet.genAbility('Perception', variables.perception, variables.perception_focus, penalty, 'Perception is the ability to pick up on and notice things using any of the character’s senses.') }}
+                        {{ sheet.genAbility('Strength', variables.strength, variables.strength_focus, penalty, 'Strength is sheer muscle power and the ability to apply it, from lifting heavy things to feats of athletics.') }}
+                        {{ sheet.genAbility('Willpower', variables.willpower, variables.willpower_focus, penalty, 'Willpower measures selfcontrol, self-discipline, mental fortitude, and confidence.') }}
+                    </table>
+                </div>
+            </div>
+            <div class="card my-2"> {# stunts #}
+                <div class="card-header header text-center"><em class="ra ra-muscle-up"></em>Preferred Stunts <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseStunts" aria-expanded="true" aria-controls="collapsStunts"><em class="fas fa-angle-down"></em></button></div>
+                <div class="card-body collapse show txt" id="collapseStunts" aria-labelledby="headingStunts">
+                    <ul class="list-group d-flex justify-content-between">
+                        <li class="list-group-item">
+                        {% if variables.preferred_stunts is defined %}
+                        {{ variables.preferred_stunts|nl2br }}
+                        {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card my-2"> {# calling #}
+                <div class="card-header header text-center"><em class="ra ra-diamonds-card"></em>Persona<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapsePersona" aria-expanded="true" aria-controls="collapsPersona"><em class="fas fa-angle-down"></em></button></div>
+                <div class="card-body collapse show txt" id="collapsePersona" aria-labelledby="headingPersona">
+                    <table width="100%">
+                        {% if variables.goals is defined %}
+                        <tr><th><span class="strong">Goals:</span></th></tr>
+                        <tr><td class="txt">{{ variables.goals|nl2br }}</td></tr>
+                        {% endif %}
+                        {% if variables.calling is defined %}
+                        <tr><th><span class="strong">Calling:</span></th></tr>
+                        <tr><td class="txt">{{ variables.calling|nl2br }}</td></tr>
+                        {% endif %}
+                        {% if variables.destinyfate is defined %}
+                        <tr><th><span class="strong">Destiny&Fate:</span></th></tr>
+                        <tr><td class="txt">{{ variables.destinyfate|nl2br }}</td></tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+            <div class="card my-2"> {# appearance #}
+                <div class="card-header header text-center"><em class="ra ra-hood"></em>Appearance <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseApp" aria-expanded="true" aria-controls="collapsApp"><em class="fas fa-angle-down"></em></button></div>
+                <div class="card-body collapse show txt" id="collapseApp" aria-labelledby="headingApp">
+                    <ul class="list-group d-flex justify-content-between">
+                        <li class="list-group-item">
+                        {% if variables.appearance is defined %}
+                        {{ variables.appearance|nl2br }}
+                        {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card my-2"> {# notice #}
+                <div class="card-header header text-center">Notice <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseNotice" aria-expanded="true" aria-controls="collapsNotice"><em class="fas fa-angle-down"></em></button></div>
+                <div class="card-body collapse show txt comment" id="collapseNotice" aria-labelledby="headingNotice">
+                    Note: When you click one of the roll buttons, you will get output like this:
+                    <pre>You rolled: 3d6+4-2 : [1,6,2]+4 = 13</pre>
+                    This is the required 3d6 for a roll, with the third d6 (rolled a 2 here) being the drama die.
+                    If your total score beat the target number, a 1 on the drama die means: you barely made it, a 6 means: you did it flawlessly.
+                    If two or more dice show the same number on successful rolls, you get stunt points (SP) and can pull off special maneuvers, tricks or flourishes.<br>
+                    In a tied opposed test, the person with the higher score on the drama die wins.
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-12 col-lg-8">
+            <div class="row">
+                <div class="col-12 col-md-12 col-lg-6 d-flex flex-column">
+                    <div class="card my-2 flex-grow-1"> {# powers #}
+                        <div class="card-header header text-center"><em class="ra ra-trefoil-lily"></em> Powers<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseClassRacelist" aria-expanded="true" aria-controls="collapsClassRacelist"><em class="fas fa-angle-down"></em></button></div>
+                        <div class="card-body collapse show txt" id="collapseClassRacelist" aria-labelledby="headingClassRacelist">
+                            <table class="weapontable">
+                                {{ sheet.genPower( "01", variables.class_race_power_name_01, variables.class_race_power_effect_01) }}
+                                {{ sheet.genPower( "02", variables.class_race_power_name_02, variables.class_race_power_effect_02) }}
+                                {{ sheet.genPower( "03", variables.class_race_power_name_03, variables.class_race_power_effect_03) }}
+                                {{ sheet.genPower( "04", variables.class_race_power_name_04, variables.class_race_power_effect_04) }}
+                                {{ sheet.genPower( "05", variables.class_race_power_name_05, variables.class_race_power_effect_05) }}
+                                {{ sheet.genPower( "06", variables.class_race_power_name_06, variables.class_race_power_effect_06) }}
+                                {{ sheet.genPower( "07", variables.class_race_power_name_07, variables.class_race_power_effect_07) }}
+                                {{ sheet.genPower( "08", variables.class_race_power_name_08, variables.class_race_power_effect_08) }}
+                                {{ sheet.genPower( "09", variables.class_race_power_name_09, variables.class_race_power_effect_09) }}
+                                {{ sheet.genPower( "10", variables.class_race_power_name_10, variables.class_race_power_effect_10) }}
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card my-2 of flex-shrink-1"> {# weapons #}
+                        <div class="card-header header text-center"><em class="ra ra-crossed-swords"></em> Weapons <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseWeapons" aria-expanded="true" aria-controls="collapsWeapons"><em class="fas fa-angle-down"></em></button></div>
+                        <div class="card-body collapse show txt" id="collapseWeapons" aria-labelledby="headingWeapons">
+                            <table class="weapontable">
+                            <tr><td>Melee attack (Fighting)</td><td>{{ sheet.genRoller('3d6+' ~ variables.fighting, penalty, 'pill', 'fas fa-dice') }}</td><td>Ranged attack (Accuracy)</td><td>{{ sheet.genRoller('3d6+' ~ variables.accuracy, penalty, 'pill', 'fas fa-dice') }}</td></tr>
+                            <tr><td colspan="4">Attack: roll Melee or Ranged and add focus bonus (if any) vs Defense, then roll weapon damage.</td></tr>
+                            </table>
+                            <table class="weapontable">
+                                <thead>
+                                    <tr>
+                                        <th>Weapon</th>
+                                        <th colspan="2">Damage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{ sheet.genWeapon( "01", variables.weapon_name_01, variables.weapon_attack_ability_01, variables.weapon_damage_01, variables.weapon_qualities_01, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                    {{ sheet.genWeapon( "02", variables.weapon_name_02, variables.weapon_attack_ability_02, variables.weapon_damage_02, variables.weapon_qualities_02, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                    {{ sheet.genWeapon( "03", variables.weapon_name_03, variables.weapon_attack_ability_03, variables.weapon_damage_03, variables.weapon_qualities_03, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                    {{ sheet.genWeapon( "04", variables.weapon_name_04, variables.weapon_attack_ability_04, variables.weapon_damage_04, variables.weapon_qualities_04, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                    {{ sheet.genWeapon( "05", variables.weapon_name_05, variables.weapon_attack_ability_05, variables.weapon_damage_05, variables.weapon_qualities_05, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                    {{ sheet.genWeapon( "06", variables.weapon_name_06, variables.weapon_attack_ability_06, variables.weapon_damage_06, variables.weapon_qualities_06, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                    {{ sheet.genWeapon( "07", variables.weapon_name_07, variables.weapon_attack_ability_07, variables.weapon_damage_07, variables.weapon_qualities_07, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                    {{ sheet.genWeapon( "08", variables.weapon_name_08, variables.weapon_attack_ability_08, variables.weapon_damage_08, variables.weapon_qualities_08, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                    {{ sheet.genWeapon( "09", variables.weapon_name_09, variables.weapon_attack_ability_09, variables.weapon_damage_09, variables.weapon_qualities_09, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                    {{ sheet.genWeapon( "10", variables.weapon_name_10, variables.weapon_attack_ability_10, variables.weapon_damage_10, variables.weapon_qualities_10, penalty, variables.dexterity, variables.perception, variables.strength) }}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-12 col-lg-6 d-flex flex-column">
+                    <div class="card my-2 flex-fill"> {# talents #}
+                        <div class="card-header header text-center"><em class="ra ra-aura"></em> Talents <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTalentlist" aria-expanded="true" aria-controls="collapsTalentlist"><em class="fas fa-angle-down"></em></button></div>
+                        <div class="card-body collapse show txt" id="collapseTalentlist" aria-labelledby="headingTalentlist">
+                            <table class="weapontable">
+                                <thead>
+                                    <tr>
+                                        <th>Talent Name</th>
+                                        <th>Degree</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{ sheet.genTalent( "01", variables.talent_name_01, variables.talent_degree_01, variables.talent_effect_01) }}
+                                    {{ sheet.genTalent( "02", variables.talent_name_02, variables.talent_degree_02, variables.talent_effect_02) }}
+                                    {{ sheet.genTalent( "03", variables.talent_name_03, variables.talent_degree_03, variables.talent_effect_03) }}
+                                    {{ sheet.genTalent( "04", variables.talent_name_04, variables.talent_degree_04, variables.talent_effect_04) }}
+                                    {{ sheet.genTalent( "05", variables.talent_name_05, variables.talent_degree_05, variables.talent_effect_05) }}
+                                    {{ sheet.genTalent( "06", variables.talent_name_06, variables.talent_degree_06, variables.talent_effect_06) }}
+                                    {{ sheet.genTalent( "07", variables.talent_name_07, variables.talent_degree_07, variables.talent_effect_07) }}
+                                    {{ sheet.genTalent( "08", variables.talent_name_08, variables.talent_degree_08, variables.talent_effect_08) }}
+                                    {{ sheet.genTalent( "09", variables.talent_name_09, variables.talent_degree_09, variables.talent_effect_09) }}
+                                    {{ sheet.genTalent( "10", variables.talent_name_10, variables.talent_degree_10, variables.talent_effect_10) }}
+                                    {{ sheet.genTalent( "11", variables.talent_name_11, variables.talent_degree_11, variables.talent_effect_11) }}
+                                    {{ sheet.genTalent( "12", variables.talent_name_12, variables.talent_degree_12, variables.talent_effect_12) }}
+                                    {{ sheet.genTalent( "13", variables.talent_name_13, variables.talent_degree_13, variables.talent_effect_13) }}
+                                    {{ sheet.genTalent( "14", variables.talent_name_14, variables.talent_degree_14, variables.talent_effect_14) }}
+                                    {{ sheet.genTalent( "15", variables.talent_name_15, variables.talent_degree_15, variables.talent_effect_15) }}
+                                    {{ sheet.genTalent( "16", variables.talent_name_16, variables.talent_degree_16, variables.talent_effect_16) }}
+                                    {{ sheet.genTalent( "17", variables.talent_name_17, variables.talent_degree_17, variables.talent_effect_17) }}
+                                    {{ sheet.genTalent( "18", variables.talent_name_18, variables.talent_degree_18, variables.talent_effect_18) }}
+                                    {{ sheet.genTalent( "19", variables.talent_name_19, variables.talent_degree_19, variables.talent_effect_19) }}
+                                    {{ sheet.genTalent( "20", variables.talent_name_20, variables.talent_degree_20, variables.talent_effect_20) }}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 col-md-12 col-lg-12 d-flex flex-column">
+                    <div class="card my-2 flex-fill"> {# Arcana #}
+                        <div class="card-header header text-center"><em class="ra ra-overmind"></em> Arcana <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseArcanalist" aria-expanded="true" aria-controls="collapsArcanalist"><em class="fas fa-angle-down"></em></button></div>
+                        <div class="card-body collapse show txt" id="collapseArcanalist" aria-labelledby="headingArcanalist">
+                            <table class="weapontable">
+                                {{ sheet.genArcana( "01", variables.arcana_name_01, variables.arcana_cast_time_01, variables.arcana_test_01, variables.arcana_resist_test_01, variables.arcana_fatigue_01, variables.arcana_description_01) }}
+                                {{ sheet.genArcana( "02", variables.arcana_name_02, variables.arcana_cast_time_02, variables.arcana_test_02, variables.arcana_resist_test_02, variables.arcana_fatigue_02, variables.arcana_description_02) }}
+                                {{ sheet.genArcana( "03", variables.arcana_name_03, variables.arcana_cast_time_03, variables.arcana_test_03, variables.arcana_resist_test_03, variables.arcana_fatigue_03, variables.arcana_description_03) }}
+                                {{ sheet.genArcana( "04", variables.arcana_name_04, variables.arcana_cast_time_04, variables.arcana_test_04, variables.arcana_resist_test_04, variables.arcana_fatigue_04, variables.arcana_description_04) }}
+                                {{ sheet.genArcana( "05", variables.arcana_name_05, variables.arcana_cast_time_05, variables.arcana_test_05, variables.arcana_resist_test_05, variables.arcana_fatigue_05, variables.arcana_description_05) }}
+                                {{ sheet.genArcana( "06", variables.arcana_name_06, variables.arcana_cast_time_06, variables.arcana_test_06, variables.arcana_resist_test_06, variables.arcana_fatigue_06, variables.arcana_description_06) }}
+                                {{ sheet.genArcana( "07", variables.arcana_name_07, variables.arcana_cast_time_07, variables.arcana_test_07, variables.arcana_resist_test_07, variables.arcana_fatigue_07, variables.arcana_description_07) }}
+                                {{ sheet.genArcana( "08", variables.arcana_name_08, variables.arcana_cast_time_08, variables.arcana_test_08, variables.arcana_resist_test_08, variables.arcana_fatigue_08, variables.arcana_description_08) }}
+                                {{ sheet.genArcana( "09", variables.arcana_name_09, variables.arcana_cast_time_09, variables.arcana_test_09, variables.arcana_resist_test_09, variables.arcana_fatigue_09, variables.arcana_description_09) }}
+                                {{ sheet.genArcana( "10", variables.arcana_name_10, variables.arcana_cast_time_10, variables.arcana_test_10, variables.arcana_resist_test_10, variables.arcana_fatigue_10, variables.arcana_description_10) }}
+                                {{ sheet.genArcana( "11", variables.arcana_name_11, variables.arcana_cast_time_11, variables.arcana_test_11, variables.arcana_resist_test_11, variables.arcana_fatigue_11, variables.arcana_description_11) }}
+                                {{ sheet.genArcana( "12", variables.arcana_name_12, variables.arcana_cast_time_12, variables.arcana_test_12, variables.arcana_resist_test_12, variables.arcana_fatigue_12, variables.arcana_description_12) }}
+                                {{ sheet.genArcana( "13", variables.arcana_name_13, variables.arcana_cast_time_13, variables.arcana_test_13, variables.arcana_resist_test_13, variables.arcana_fatigue_13, variables.arcana_description_13) }}
+                                {{ sheet.genArcana( "14", variables.arcana_name_14, variables.arcana_cast_time_14, variables.arcana_test_14, variables.arcana_resist_test_14, variables.arcana_fatigue_14, variables.arcana_description_14) }}
+                                {{ sheet.genArcana( "15", variables.arcana_name_15, variables.arcana_cast_time_15, variables.arcana_test_15, variables.arcana_resist_test_15, variables.arcana_fatigue_15, variables.arcana_description_15) }}
+                                {{ sheet.genArcana( "16", variables.arcana_name_16, variables.arcana_cast_time_16, variables.arcana_test_16, variables.arcana_resist_test_16, variables.arcana_fatigue_16, variables.arcana_description_16) }}
+                                {{ sheet.genArcana( "17", variables.arcana_name_17, variables.arcana_cast_time_17, variables.arcana_test_17, variables.arcana_resist_test_17, variables.arcana_fatigue_17, variables.arcana_description_17) }}
+                                {{ sheet.genArcana( "18", variables.arcana_name_18, variables.arcana_cast_time_18, variables.arcana_test_18, variables.arcana_resist_test_18, variables.arcana_fatigue_18, variables.arcana_description_18) }}
+                                {{ sheet.genArcana( "19", variables.arcana_name_19, variables.arcana_cast_time_19, variables.arcana_test_19, variables.arcana_resist_test_19, variables.arcana_fatigue_19, variables.arcana_description_19) }}
+                                {{ sheet.genArcana( "20", variables.arcana_name_20, variables.arcana_cast_time_20, variables.arcana_test_20, variables.arcana_resist_test_20, variables.arcana_fatigue_20, variables.arcana_description_20) }}
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card my-2 flex-fill"> {# equipment #}
+                        <div class="card-header header text-center"><em class="ra ra-kettlebell"></em> Equipment <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseEquip" aria-expanded="true" aria-controls="collapsEquip"><em class="fas fa-angle-down"></em></button></div>
+                        <div class="card-body collapse show txt comment" id="collapseEquip" aria-labelledby="headingEquip">
+                            {% if variables.equipment is defined %}
+                            {{ variables.equipment|nl2br }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card my-2 flex-fill"> {# relationships #}
+                        <div class="card-header header text-center"><em class="fas fa-people-arrows"></em> Relationships <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseRels" aria-expanded="true" aria-controls="collapsRels"><em class="fas fa-angle-down"></em></button></div>
+                        <div class="card-body collapse show txt comment" id="collapseRels" aria-labelledby="headingRels">
+                            {% if variables.relationships is defined %}
+                            {{ variables.relationships|nl2br }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card my-2 flex-fill"> {# notes #}
+                        <div class="card-header header text-center"><em class="fas fa-file-alt"></em> Notes <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="true" aria-controls="collapsNotes"><em class="fas fa-angle-down"></em></button></div>
+                        <div class="card-body collapse show txt comment" id="collapseNotes" aria-labelledby="headingNotes">
+                            {% if variables.notes is defined %}
+                            {{ variables.notes|nl2br }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row"><div class="col-12 text-center"><small>Blue Rose RPG (c) Green Ronin Publishing<br>Made by Miraiya#3204, heavily copied from The Expanse Sheet v1.02, made by Tillerz#3807</small></div></div>
+</div> {# close container-sheet #}
